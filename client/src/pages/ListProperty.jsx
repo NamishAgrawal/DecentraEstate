@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { pinata } from "../utils/config";
 import { ethers } from "ethers";
-import { useWallet } from "../context/WalletContext.jsx";  
+import { useWallet } from "../context/WalletContext.jsx";
 import PropertyStorageABI from "../contracts/PropertyStorage.json";
 import EscrowABI from "../contracts/Escrow.json";
 import RealEstateABI from "../contracts/RealEstate.json";
 
-const CONTRACT_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3"; 
+const CONTRACT_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
 const EscrowAddress = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0";
-const RealEstateAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"; 
+const RealEstateAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
 
 const ListProperty = () => {
   const { account } = useWallet();
@@ -87,20 +87,20 @@ const ListProperty = () => {
       // await tx.wait();
       // setTxHash(tx.hash);
       console.log(account)
-      const RealEstate = new ethers.Contract(RealEstateAddress,RealEstateABI,signer);
-      const tx = await RealEstate.safeMint(account,cid);
+      const RealEstate = new ethers.Contract(RealEstateAddress, RealEstateABI, signer);
+      const tx = await RealEstate.safeMint(account, cid);
       await tx.wait();
       setTxHash(tx.hash);
       let _id = await RealEstate.getnextTokenId();
       _id = Number(_id);
-      const escrowContract = new ethers.Contract(EscrowAddress,EscrowABI, signer);
+      const escrowContract = new ethers.Contract(EscrowAddress, EscrowABI, signer);
       const downPayment = Math.round(property.price * 0.2);
       console.log(property.price);
       console.log(downPayment);
       console.log(_id);
-      const tx2 = await RealEstate.approve(EscrowAddress, _id-1)
+      const tx2 = await RealEstate.approve(EscrowAddress, _id - 1)
       await tx2.wait();
-      const tx1 = await escrowContract.list(_id-1,property.price,downPayment);
+      const tx1 = await escrowContract.list(_id - 1, property.price, downPayment);
       await tx1.wait();
       alert("successfull listing complete");
     } catch (error) {
@@ -130,10 +130,10 @@ const ListProperty = () => {
         <input type="number" name="bathrooms" placeholder="Bathrooms" value={property.bathrooms} onChange={handleChange} required className="w-full p-2 border rounded" />
         <input type="number" name="squareFeet" placeholder="Square Feet" value={property.squareFeet} onChange={handleChange} required className="w-full p-2 border rounded" />
         <input type="number" name="yearBuilt" placeholder="Year Built" value={property.yearBuilt} onChange={handleChange} required className="w-full p-2 border rounded" />
-        
-        <button 
-          type="submit" 
-          disabled={isUploading || !account} 
+
+        <button
+          type="submit"
+          disabled={isUploading || !account}
           className={`w-full p-2 rounded ${account ? "bg-blue-500 hover:bg-blue-600 text-white" : "bg-gray-400 cursor-not-allowed"}`}
         >
           {isUploading ? "Uploading..." : account ? "List Property" : "Connect Wallet to List"}

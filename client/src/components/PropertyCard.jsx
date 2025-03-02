@@ -16,8 +16,7 @@ const PropertyCard = ({ property }) => {
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
       const contract = new ethers.Contract(CONTRACT_ADDRESS, EscrowABI, signer);
-
-
+      
       
     }
     catch (error) {
@@ -55,7 +54,7 @@ const PropertyCard = ({ property }) => {
         Price: {property.attributes.find(attr => attr.trait_type === "Purchase Price")?.value} ETH
       </p>
       <button 
-        
+        onclick ={buyProp}
         disabled={!isConnected}
         className={`mt-3 w-full p-2 rounded-lg text-white font-semibold ${
           isConnected ? "bg-green-500 hover:bg-green-600" : "bg-gray-400 cursor-not-allowed"

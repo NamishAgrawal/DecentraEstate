@@ -26,6 +26,9 @@ const Navbar = () => {
                 <Link to="/list" className="text-white text-lg">
                     List Property
                 </Link>
+                <Link to="/lender-inspector" className="text-white text-lg">
+                    Lender Inspector
+                </Link>
             </div>
 
             {/* Right: Connect Wallet Button */}
