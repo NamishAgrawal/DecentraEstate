@@ -29,6 +29,9 @@ const Navbar = () => {
                 <Link to="/lender-inspector" className="text-white text-lg">
                     Lender Inspector
                 </Link>
+                <Link to="/dashboard" className = "text-white text-lg">
+                    Dashboard
+                </Link>
             </div>
 
             {/* Right: Connect Wallet Button */}

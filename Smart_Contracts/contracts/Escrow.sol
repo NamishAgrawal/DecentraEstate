@@ -17,7 +17,7 @@ contract Escrow {
     mapping(address => bool) public inspector;
     mapping(uint256 => uint256) public listing_price;
     mapping(uint256 => bool) public isListed;
-    mapping(uint256 => bool) public inspected;
+    mapping(uint256 => bool) public inspected;  
     mapping(uint256 => uint256) public escrow_amount;
     mapping(uint256 => mapping(address => bool)) public lender_approved;
     mapping(uint256 => bool) public lender_paid;
@@ -104,5 +104,9 @@ contract Escrow {
         delete listing_price[_id];
         delete escrow_amount[_id];
         delete inspected[_id];
+        delete lender_approved[_id][msg.sender];
+        delete buyer_paid[_id];
+        delete lender_paid[_id];
+        
     }
 }

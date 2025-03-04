@@ -5,6 +5,8 @@ import Home from "./pages/Home";
 import ListProperty from "./pages/ListProperty";
 import LenderInspector from "./pages/LenderInspector";
 import AddLenderInspector from "./pages/AddLenderInspector.jsx";
+import Dashboard from "./pages/Dashboard.jsx";
+
 
 function App() {
   return (
@@ -17,6 +19,7 @@ function App() {
             <Route path="/list" element={<ListProperty />} />
             <Route path="/lender-inspector" element={<LenderInspector />} />
             <Route path="/add-lender-inspector"  element={<AddLenderInspector />} />
+            <Route path="/dashboard"  element={<Dashboard />} />
           </Routes>
         </div>
       </Router>
