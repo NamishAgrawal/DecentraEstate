@@ -22,6 +22,10 @@ contract RealEstate is ERC721, ERC721URIStorage {
         _setTokenURI(tokenId, uri);
     }
 
+    function setTokenURI(uint256 id, string memory uri) public {
+        _setTokenURI(id,uri);
+    }
+
     // The following functions are overrides required by Solidity.
 
     function tokenURI(uint256 tokenId)

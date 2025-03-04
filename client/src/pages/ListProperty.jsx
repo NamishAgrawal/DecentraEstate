@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { pinata } from "../utils/config";
+import { pinata } from "../utils/config"; 
 import { ethers } from "ethers";
 import { useWallet } from "../context/WalletContext.jsx";
 import PropertyStorageABI from "../contracts/PropertyStorage.json";
@@ -81,11 +81,6 @@ const ListProperty = () => {
     try {
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
-      // const contract = new ethers.Contract(CONTRACT_ADDRESS, PropertyStorageABI, signer);
-
-      // const tx = await contract.listProperty(cid);
-      // await tx.wait();
-      // setTxHash(tx.hash);
       console.log(account)
       const RealEstate = new ethers.Contract(RealEstateAddress, RealEstateABI, signer);
       const tx = await RealEstate.safeMint(account, cid);
