@@ -16,6 +16,7 @@ contract Escrow {
     mapping(uint256 => uint256) public escrow_amount;
     mapping(uint256 => mapping(address => bool)) public lender_approved;
     mapping(uint256 => bool) public lender_paid;
+    mapping(uint256=>address)public idToLender;
     mapping(uint256 => bool) public buyer_paid;
 
     address public owner;
@@ -80,11 +81,13 @@ contract Escrow {
 
     function approveProperty(uint256 _id, address _buyer) public onlyLender {
         require(isListed[_id], "The item is not yet listed");
+        idToLender[_id] = msg.sender;
         lender_approved[_id][_buyer] = true;
     }
 
     function depositLendMoney(uint256 _id) public payable onlyLender {
         require(isListed[_id], "The item is not yet listed");
+        require(idToLender[_id] == msg.sender,"you are not the lender");
         require(
             msg.value >= listing_price[_id] - escrow_amount[_id],
             "Not enough funds sent"
@@ -129,6 +132,11 @@ contract Escrow {
 
     function cancellListing(uint _id) public onlySeller(_id) {
         isListed[_id] = false;
+        if(lender_paid[_id]){
+            address lenderr = idToLender[_id];
+            uint money = listing_price[_id]-escrow_amount[_id];
+            payable(lenderr).transfer(money);
+        }
         delete idToSeller[_id];
         delete listing_price[_id];
         delete escrow_amount[_id];
@@ -136,6 +144,8 @@ contract Escrow {
         delete lender_approved[_id][msg.sender];
         delete buyer_paid[_id];
         delete lender_paid[_id];
+        
         IERC721(nftAddress).transferFrom(address(this),msg.sender, _id);
+
     }
 }
