@@ -1,0 +1,88 @@
+:root {
+    --primary-purple: #6A0DAD;
+    --text-color: #333;
+    --white: #FFFFFF;
+  }
+  
+  .navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 40px;
+    background-color: var(--white);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+  
+  .navbar-brand {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--primary-purple);
+    letter-spacing: -0.5px;
+  }
+  
+  .navbar-menu {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+  }
+  
+  .navbar-item {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text-color);
+    text-decoration: none;
+    transition: color 0.3s ease;
+    position: relative;
+  }
+  
+  .navbar-item:hover {
+    color: var(--primary-purple);
+  }
+  
+  .navbar-item::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 2px;
+    bottom: -5px;
+    left: 0;
+    background-color: var(--primary-purple);
+    transition: width 0.3s ease;
+  }
+  
+  .navbar-item:hover::after {
+    width: 100%;
+  }
+  
+  .connect-wallet-btn {
+    background-color: var(--primary-purple);
+    color: var(--white);
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .connect-wallet-btn:hover {
+    background-color: #5A0BAD;
+  }
+  
+  @media (max-width: 768px) {
+    .navbar {
+      flex-direction: column;
+      padding: 15px;
+    }
+  
+    .navbar-menu {
+      flex-direction: column;
+      width: 100%;
+      align-items: center;
+    }
+  
+    .navbar-item {
+      margin: 10px 0;
+    }
+  }

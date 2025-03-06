@@ -1,0 +1,132 @@
+/* Global Styles */
+.lender-inspector-container {
+    font-family: 'Arial', sans-serif;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #f4f4f4;
+}
+
+/* Section Titles */
+.section-title {
+    color: #333;
+    border-bottom: 2px solid #6a0dad;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+    font-size: 24px;
+}
+
+/* Properties Grid */
+.properties-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+/* Property Card */
+.property-card {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    transition: transform 0.3s ease;
+}
+
+.property-card:hover {
+    transform: scale(1.03);
+}
+
+.property-card-header {
+    background-color: #f0e6ff;
+    padding: 15px;
+    border-bottom: 1px solid #e0d0ff;
+}
+
+.property-card-body {
+    padding: 15px;
+}
+
+.property-id {
+    font-weight: bold;
+    color: #6a0dad;
+    margin-bottom: 10px;
+}
+
+.property-status {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+
+.status-approved {
+    color: green;
+    font-weight: bold;
+}
+
+.status-pending {
+    color: red;
+    font-weight: bold;
+}
+
+/* Buttons */
+.approval-button {
+    width: 100%;
+    padding: 10px;
+    border: none;
+    border-radius: 5px;
+    color: white;
+    font-weight: bold;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.lender-approve-button {
+    background-color: #3498db;
+}
+
+.lender-approve-button:hover {
+    background-color: #2980b9;
+}
+
+.inspector-approve-button {
+    background-color: #2ecc71;
+}
+
+.inspector-approve-button:hover {
+    background-color: #27ae60;
+}
+
+.payment-button {
+    background-color: #9b59b6;
+}
+
+.payment-button:hover {
+    background-color: #8e44ad;
+}
+
+/* Error Message */
+.error-message {
+    background-color: #ffebee;
+    color: #d32f2f;
+    border: 1px solid #f44336;
+    padding: 10px;
+    border-radius: 5px;
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+}
+
+.error-icon {
+    margin-right: 10px;
+    color: #d32f2f;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .properties-grid {
+        grid-template-columns: 1fr;
+    }
+}
