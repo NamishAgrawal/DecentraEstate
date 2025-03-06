@@ -4,7 +4,7 @@ import EscrowABI from "../contracts/Escrow.json";
 import RealEstateABI from "../contracts/RealEstate.json";
 import { useWallet } from "../context/WalletContext";
 import addresses from "../contracts/addresses.json";
-import './LenderInspector.css'; // Import the CSS file
+import './LenderInspector.css'; 
 
 const EscrowAddress = addresses.Escrow;
 const RealEstateAddress = addresses.RealEstate;
@@ -15,8 +15,78 @@ const LenderInspector = () => {
     const [payableProperties, setPayableProperties] = useState([]);
     const [ErrorM, setErrorM] = useState("");
 
-    // ... (keep the existing useEffect and methods)
+    useEffect(() => {
+        const fetchPendingApprovals = async () => {
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            const contract = new ethers.Contract(EscrowAddress, EscrowABI, provider);
+            const RealEstatecontract = new ethers.Contract(RealEstateAddress, RealEstateABI, provider);
 
+            const totalProperties = await RealEstatecontract.getnextTokenId();
+            let pendingList = [];
+            let payableList = [];
+
+            for (let id = 0; id < totalProperties; id++) {
+                const isInspectorApproved = await contract.inspected(id);
+                const isLenderApproved = await contract.lender_approved(id, account);
+                const isLenderPaid = await contract.lender_paid(id);
+                const listingPrice = (await contract.listing_price(id)).toString();
+                const escrowAmount = (await contract.escrow_amount(id)).toString();
+                console.log("listing", listingPrice);
+                console.log("escrow", escrowAmount);
+
+                const amountToPay = BigInt(listingPrice) - BigInt(escrowAmount);
+                console.log("amountToPay", amountToPay.toString());
+
+
+                if (!isLenderApproved || !isInspectorApproved) {
+                    pendingList.push({ id, isLenderApproved, isInspectorApproved });
+                }
+                
+                if (isLenderApproved && !isLenderPaid) {
+                    payableList.push({ id, amountToPay });
+                }
+            }
+
+            setProperties(pendingList);
+            setPayableProperties(payableList);
+        };
+
+        fetchPendingApprovals();
+    }, [account]);
+
+    const approveProperty = async (id, role) => {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        const contract = new ethers.Contract(EscrowAddress, EscrowABI, signer);
+
+        try {
+            if (role === "lender") {
+                const tx = await contract.approveProperty(id, account);
+                await tx.wait();
+            } else {
+                const tx = await contract.inspectProperty(id);
+                await tx.wait();
+            }
+        } catch (error) {
+            setErrorM(role === "lender" ? "Only lenders can approve" : "Only inspectors can approve");
+        }
+    };
+
+    const payForProperty = async (id, amount) => {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        const contract = new ethers.Contract(EscrowAddress, EscrowABI, signer);
+        
+        try {
+            const amountInWei = ethers.parseUnits(amount.toString(), "ether");
+            const tx = await contract.depositLendMoney(id, { value: amountInWei });
+            await tx.wait();
+            
+        } catch (error) {
+            console.error(error);
+            setErrorM("Payment failed. Ensure you have enough funds.");
+        }
+    };
     return (
         <div className="lender-inspector-container">
             <h2 className="section-title">Lender & Inspector Approvals</h2>
