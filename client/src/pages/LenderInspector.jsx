@@ -27,21 +27,22 @@ const LenderInspector = () => {
 
             for (let id = 0; id < totalProperties; id++) {
                 const isInspectorApproved = await contract.inspected(id);
-                const isLenderApproved = await contract.lender_approved(id, account);
+                const isLenderApproved = await contract.lender_approved(id);
                 const isLenderPaid = await contract.lender_paid(id);
                 const listingPrice = (await contract.listing_price(id)).toString();
                 const escrowAmount = (await contract.escrow_amount(id)).toString();
                 console.log("listing", listingPrice);
                 console.log("escrow", escrowAmount);
 
-                const amountToPay = BigInt(listingPrice) - BigInt(escrowAmount);
+                const amountToPayinWEI = BigInt(listingPrice) - BigInt(escrowAmount);
+                const amountToPay = ethers.formatEther(amountToPayinWEI.toString());
                 console.log("amountToPay", amountToPay.toString());
 
 
                 if (!isLenderApproved || !isInspectorApproved) {
                     pendingList.push({ id, isLenderApproved, isInspectorApproved });
                 }
-                
+
                 if (isLenderApproved && !isLenderPaid) {
                     payableList.push({ id, amountToPay });
                 }
@@ -61,7 +62,7 @@ const LenderInspector = () => {
 
         try {
             if (role === "lender") {
-                const tx = await contract.approveProperty(id, account);
+                const tx = await contract.approveProperty(id);
                 await tx.wait();
             } else {
                 const tx = await contract.inspectProperty(id);
@@ -78,8 +79,8 @@ const LenderInspector = () => {
         const contract = new ethers.Contract(EscrowAddress, EscrowABI, signer);
         
         try {
-            const amountInWei = ethers.parseUnits(amount.toString(), "ether");
-            const tx = await contract.depositLendMoney(id, { value: amountInWei });
+            // const amountInWei = ethers.parseUnits(amount.toString(), "ether");
+            const tx = await contract.depositLendMoney(id, { value: amount });
             await tx.wait();
             
         } catch (error) {
@@ -145,7 +146,7 @@ const LenderInspector = () => {
                                 <span>{property.amountToPay} ETH</span>
                             </div>
                             <button 
-                                onClick={() => payForProperty(property.id, property.amountToPay)} 
+                                onClick={() => payForProperty(property.id, ethers.parseEther(property.amountToPay))} 
                                 className="approval-button payment-button"
                             >
                                 Pay Property

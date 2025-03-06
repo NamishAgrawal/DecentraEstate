@@ -58,16 +58,20 @@ const PropertyCard = ({ property, isOwner }) => {
       const tx = await realEstateContract.setTokenURI(property.id, newCID);
       await tx.wait();
   
-      const downPayment = Math.round(newPrice * 0.2);
+      const downPayment = newPrice * 0.2;
       const owner = await realEstateContract.ownerOf(property.id);
       if(owner.toLowerCase() === account.toLowerCase()){
         const tx2 = await realEstateContract.approve(CONTRACT_ADDRESS, property.id);
         await tx2.wait();
-        const tx1 = await escrowContract.list(property.id, newPrice, downPayment);
+        const newPriceEthers = ethers.parseEther(newPrice.toString());
+        const downPaymentEthers = ethers.parseEther(downPayment.toString());
+        const tx1 = await escrowContract.list(property.id, newPriceEthers, downPaymentEthers);
         await tx1.wait();
       }
       else{
-        const tx1 = await escrowContract.updatelisting(property.id, newPrice, downPayment);
+        const newPriceEthers = ethers.parseEther(newPrice.toString());
+        const downPaymentEthers = ethers.parseEther(downPayment.toString());
+        const tx1 = await escrowContract.updatelisting(property.id, newPriceEthers, downPaymentEthers);
         await tx1.wait();
       }
       
@@ -111,8 +115,8 @@ const PropertyCard = ({ property, isOwner }) => {
       }
 
       const amount = await contract.escrow_amount(_id);
-      const amount_wei = ethers.parseUnits(amount.toString(), "ether");
-      const tx = await contract.buyProperty(_id, { value: amount_wei });
+      // const amount_wei = ethers.parseUnits(amount.toString(), "ether");
+      const tx = await contract.buyProperty(_id, { value: amount });
       await tx.wait();
       alert("Transaction successful!");
     } catch (error) {
@@ -151,7 +155,9 @@ const PropertyCard = ({ property, isOwner }) => {
 
         <div className="price-container">
           <p className="property-price">
-            {property.attributes.find(attr => attr.trait_type === "Purchase Price")?.value} ETH
+            {
+            property.attributes.find(attr => attr.trait_type === "Purchase Price")?.value
+            } ETH
           </p>
           <p className="property-downpayment">
             Downpayment: {property.attributes.find(attr => attr.trait_type === "Purchase Price")?.value * 0.2} ETH

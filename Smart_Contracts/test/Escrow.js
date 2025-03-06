@@ -4,7 +4,10 @@ const { ethers } = require("hardhat");
 describe("Escrow Contract", function () {
   let realEstate, escrow;
   let deployer, seller, buyer, lender, inspector;
-  let nftId = 0; // First minted NFT will have ID 0
+  let nftId = 0;
+  let listingPrice = ethers.parseEther("10"); // 10 ETH
+  let downPayment = ethers.parseEther("2"); // 2 ETH down payment
+  let loanAmount = listingPrice - downPayment; // 8 ETH
 
   beforeEach(async function () {
     // Get signers
@@ -31,8 +34,6 @@ describe("Escrow Contract", function () {
     await realEstate.connect(seller).approve(await escrow.getAddress(), nftId);
 
     // Seller lists the NFT in Escrow
-    const listingPrice = ethers.parseEther("10"); // 10 ETH
-    const downPayment = ethers.parseEther("2"); // 2 ETH down payment
     await escrow.connect(seller).list(nftId, listingPrice, downPayment);
   });
 
@@ -42,10 +43,10 @@ describe("Escrow Contract", function () {
   });
 
   it("should allow lender to approve and deposit funds", async function () {
-    await escrow.connect(lender).approveProperty(nftId, buyer.address);
-    expect(await escrow.lender_approved(nftId, buyer.address)).to.equal(true);
+    await escrow.connect(lender).approveProperty(nftId);
+    expect(await escrow.lender_approved(nftId)).to.equal(true);
 
-    await escrow.connect(lender).depositLendMoney(nftId, { value: ethers.parseEther("8") });
+    await escrow.connect(lender).depositLendMoney(nftId, { value: loanAmount });
     expect(await escrow.lender_paid(nftId)).to.equal(true);
   });
 
@@ -54,15 +55,44 @@ describe("Escrow Contract", function () {
     await escrow.connect(inspector).inspectProperty(nftId);
 
     // Lender approves buyer
-    await escrow.connect(lender).approveProperty(nftId, buyer.address);
+    await escrow.connect(lender).approveProperty(nftId);
 
     // Lender deposits remaining funds
-    await escrow.connect(lender).depositLendMoney(nftId, { value: ethers.parseEther("8") });
+    await escrow.connect(lender).depositLendMoney(nftId, { value: loanAmount });
 
     // Buyer purchases the property
-    await escrow.connect(buyer).buyProperty(nftId, { value: ethers.parseEther("2") });
+    await escrow.connect(buyer).buyProperty(nftId, { value: downPayment });
 
     // Check if ownership has been transferred
     expect(await realEstate.ownerOf(nftId)).to.equal(buyer.address);
+  });
+
+  it("should return lender's funds on cancellation", async function () {
+    // Lender approves property and deposits funds
+    await escrow.connect(lender).approveProperty(nftId);
+    await escrow.connect(lender).depositLendMoney(nftId, { value: loanAmount });
+
+    // Capture lender's balance before cancellation
+    const lenderBalanceBefore = await ethers.provider.getBalance(lender.address);
+
+    // Seller cancels listing
+    await escrow.connect(seller).cancellListing(nftId);
+
+    // Capture lender's balance after cancellation
+    const lenderBalanceAfter = await ethers.provider.getBalance(lender.address);
+
+    // Check that lender got refunded
+    console.log("balance before",lenderBalanceBefore);
+    console.log("balance after", lenderBalanceAfter);
+    console.log("difference",lenderBalanceAfter-lenderBalanceBefore );
+    expect(lenderBalanceAfter).to.be.gt(lenderBalanceBefore);
+  });
+
+  it("should return NFT to seller on cancellation", async function () {
+    // Seller cancels listing
+    await escrow.connect(seller).cancellListing(nftId);
+
+    // Check that seller owns the NFT again
+    expect(await realEstate.ownerOf(nftId)).to.equal(seller.address);
   });
 });

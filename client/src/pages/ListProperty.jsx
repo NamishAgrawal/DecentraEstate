@@ -92,12 +92,12 @@ const ListProperty = () => {
       
       const escrowContract = new ethers.Contract(EscrowAddress, EscrowABI, signer);
       
-      const downPayment = Math.round(property.price * 0.2);
-      
+      const downPayment = property.price * 0.2;
+      console.log("down payment = ",downPayment);
       const tx2 = await RealEstate.approve(EscrowAddress, _id - 1)
       await tx2.wait();
       
-      const tx1 = await escrowContract.list(_id - 1, property.price, downPayment);
+      const tx1 = await escrowContract.list(_id - 1, ethers.parseUnits(property.price.toString(), "ether"), ethers.parseUnits(downPayment.toString(),"ether"));
       await tx1.wait();
       
       alert("Successful listing complete");

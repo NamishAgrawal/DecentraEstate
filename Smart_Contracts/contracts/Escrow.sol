@@ -14,16 +14,18 @@ contract Escrow {
     mapping(uint256 => bool) public isListed;
     mapping(uint256 => bool) public inspected;
     mapping(uint256 => uint256) public escrow_amount;
-    mapping(uint256 => mapping(address => bool)) public lender_approved;
+    mapping(uint256 => bool) public lender_approved;
     mapping(uint256 => bool) public lender_paid;
-    mapping(uint256=>address)public idToLender;
+    mapping(uint256 => address) public idToLender;
     mapping(uint256 => bool) public buyer_paid;
 
     address public owner;
+    
     modifier onlyOwner() {
         require(msg.sender == owner);
         _;
     }
+
     modifier onlyInspector() {
         require(inspector[msg.sender], "Only inspector can call this function");
         _;
@@ -41,6 +43,11 @@ contract Escrow {
         );
         _;
     }
+
+    event LenderPaidBack(address lender, uint amount);
+    event ListingCancelled(uint id);
+    event sellerPaid(address seller);
+    event propertyBought(address buyer, address lender, address inspector, address seller);
 
     constructor(address _nftAddress) {
         nftAddress = _nftAddress;
@@ -68,8 +75,8 @@ contract Escrow {
         uint256 _price,
         uint256 _downPayment
     ) public {
-        require(isListed[_id], "it is not listed");
-        require(idToSeller[_id] == msg.sender, "you are not the seller");
+        require(isListed[_id], "Item is not listed");
+        require(idToSeller[_id] == msg.sender, "You are not the seller");
         listing_price[_id] = _price;
         escrow_amount[_id] = _downPayment;
     }
@@ -79,15 +86,15 @@ contract Escrow {
         inspected[_id] = true;
     }
 
-    function approveProperty(uint256 _id, address _buyer) public onlyLender {
+    function approveProperty(uint256 _id) public onlyLender {
         require(isListed[_id], "The item is not yet listed");
         idToLender[_id] = msg.sender;
-        lender_approved[_id][_buyer] = true;
+        lender_approved[_id] = true;
     }
 
     function depositLendMoney(uint256 _id) public payable onlyLender {
         require(isListed[_id], "The item is not yet listed");
-        require(idToLender[_id] == msg.sender,"you are not the lender");
+        require(idToLender[_id] == msg.sender, "You are not the lender");
         require(
             msg.value >= listing_price[_id] - escrow_amount[_id],
             "Not enough funds sent"
@@ -99,7 +106,7 @@ contract Escrow {
         require(isListed[_id], "The item is not yet listed");
         require(inspected[_id], "Inspection not complete");
         require(
-            lender_approved[_id][msg.sender],
+            lender_approved[_id],
             "Lender has not approved the transaction"
         );
         require(msg.value >= escrow_amount[_id], "Not enough down payment");
@@ -110,42 +117,41 @@ contract Escrow {
             address(this).balance >= listing_price[_id],
             "Not enough funds in escrow"
         );
-
         address seller = idToSeller[_id];
-
-        // Transfer funds to the seller
+        address lenderr = idToLender[_id];
         payable(seller).transfer(listing_price[_id]);
+        emit sellerPaid(seller);
 
-        // Transfer NFT to buyer
         IERC721(nftAddress).transferFrom(address(this), msg.sender, _id);
-
-        // Mark as sold
         isListed[_id] = false;
         delete idToSeller[_id];
         delete listing_price[_id];
         delete escrow_amount[_id];
         delete inspected[_id];
-        delete lender_approved[_id][msg.sender];
+        delete lender_approved[_id];
         delete buyer_paid[_id];
         delete lender_paid[_id];
+        emit propertyBought(msg.sender, lenderr, owner, seller);
     }
 
-    function cancellListing(uint _id) public onlySeller(_id) {
+    function cancellListing(uint256 _id) public onlySeller(_id) {
         isListed[_id] = false;
-        if(lender_paid[_id]){
+
+        if (lender_paid[_id]) {
             address lenderr = idToLender[_id];
-            uint money = listing_price[_id]-escrow_amount[_id];
+            uint money = (listing_price[_id] - escrow_amount[_id]);
             payable(lenderr).transfer(money);
+            emit LenderPaidBack(lenderr, money);
         }
+
+        IERC721(nftAddress).transferFrom(address(this), msg.sender, _id);
         delete idToSeller[_id];
         delete listing_price[_id];
-        delete escrow_amount[_id];
+        delete escrow_amount[_id];  
         delete inspected[_id];
-        delete lender_approved[_id][msg.sender];
+        delete lender_approved[_id];
         delete buyer_paid[_id];
         delete lender_paid[_id];
-        
-        IERC721(nftAddress).transferFrom(address(this),msg.sender, _id);
-
+        emit ListingCancelled(_id);
     }
 }
