@@ -5,6 +5,7 @@ import { useWallet } from "../context/WalletContext.jsx";
 import EscrowABI from "../contracts/Escrow.json";
 import RealEstateABI from "../contracts/RealEstate.json";
 import addresses from "../contracts/addresses.json";
+import "./PropertyCard.css"; // Import the CSS file
 
 const CONTRACT_ADDRESS = addresses.Escrow;
 const RealEstateAddress = addresses.RealEstate;
@@ -14,10 +15,9 @@ const PropertyCard = ({ property, isOwner }) => {
   const [showModal, setShowModal] = useState(false);
   const [newPrice, setNewPrice] = useState("");
   const [newDescription, setNewDescription] = useState("");
-  const[newName,setNewName] = useState("");
+  const [newName, setNewName] = useState("");
 
   const isConnected = !!account;
-
 
   const handleSellClick = () => {
     setShowModal(true);
@@ -55,7 +55,7 @@ const PropertyCard = ({ property, isOwner }) => {
       const metadataUpload = await pinata.upload.json(updatedMetadata);
       const newCID = metadataUpload.IpfsHash;
   
-      const tx = await realEstateContract.setTokenURI(property.id,newCID);
+      const tx = await realEstateContract.setTokenURI(property.id, newCID);
       await tx.wait();
   
       const downPayment = Math.round(newPrice * 0.2);
@@ -67,18 +67,19 @@ const PropertyCard = ({ property, isOwner }) => {
         await tx1.wait();
       }
       else{
-        const tx1 = await escrowContract.updatelisting(property.id,newPrice,downPayment);
+        const tx1 = await escrowContract.updatelisting(property.id, newPrice, downPayment);
         await tx1.wait();
       }
       
       alert("Property successfully re-listed!");
+      setShowModal(false);
     } catch (error) {
       console.error("Listing failed:", error);
       alert("Failed to list property.");
     }
   };
 
-  const handleCancell = async()=>{
+  const handleCancell = async () => {
     if (!isConnected) return alert("Please connect your wallet to buy!");
 
     try {
@@ -87,11 +88,11 @@ const PropertyCard = ({ property, isOwner }) => {
       const contract = new ethers.Contract(CONTRACT_ADDRESS, EscrowABI, signer);
       const tx = await contract.cancellListing(property.id);
       await tx.wait();
-      alert("successfuly cancelled the listing");
+      alert("Successfully cancelled the listing");
     }
     catch(error){
       console.error("Transaction failed:", error);
-      alert("Failed to cancell Listing");
+      alert("Failed to cancel listing");
     }
   };
 
@@ -120,102 +121,113 @@ const PropertyCard = ({ property, isOwner }) => {
     }
   };
 
-
-
   return (
-    <div className="bg-white shadow-md rounded-lg p-4 flex flex-col items-center w-80">
-      <img
-        src={property.image}
-        alt={property.name}
-        className="w-full max-w-[250px] h-[180px] object-cover rounded-lg"
-      />
+    <div className="property-card">
+      <div className="property-card-image-container">
+        <img
+          src={property.image}
+          alt={property.name}
+          className="property-card-image"
+        />
+        {property.status && (
+          <span className="property-card-badge">{property.status}</span>
+        )}
+      </div>
+      
+      <div className="property-content">
+        <h3 className="property-title">{property.name}</h3>
+        <p className="property-address">{property.address}</p>
+        <p className="property-description">{property.description}</p>
+        <p className="property-id">ID: {property.id}</p>
 
-      <h3 className="text-lg font-semibold mt-2 text-center">{property.name}</h3>
-      <p className="text-gray-500 text-sm text-center">{property.address}</p>
-      <p className="text-gray-600 text-sm text-center mt-2">{property.description}</p>
-      <p className="text-gray-600 text-sm text-center mt-2">ID: {property.id}</p>
+        <div className="property-attributes">
+          {property.attributes.map((attr, index) => (
+            <div key={index} className="property-attribute">
+              <span className="attribute-label">{attr.trait_type}:</span>
+              <span className="attribute-value">{attr.value}</span>
+            </div>
+          ))}
+        </div>
 
-      <div className="mt-2 text-sm w-full">
-        {property.attributes.map((attr, index) => (
-          <div key={index} className="flex justify-between w-full border-b py-1">
-            <span className="text-gray-700 font-medium">{attr.trait_type}:</span>
-            <span className="text-gray-900 font-semibold">{attr.value}</span>
-          </div>
-        ))}
+        <div className="price-container">
+          <p className="property-price">
+            {property.attributes.find(attr => attr.trait_type === "Purchase Price")?.value} ETH
+          </p>
+          <p className="property-downpayment">
+            Downpayment: {property.attributes.find(attr => attr.trait_type === "Purchase Price")?.value * 0.2} ETH
+          </p>
+        </div>
+
+        <div className="button-container">
+          {isOwner ? (
+            <button
+              onClick={handleSellClick}
+              className="sell-button"
+            >
+              Sell
+            </button>
+          ) : (
+            <button
+              onClick={buyProp}
+              disabled={!isConnected}
+              className="buy-button"
+            >
+              {isConnected ? "Buy Now" : "Connect Wallet to Buy"}
+            </button>
+          )}
+          
+          {isOwner && (
+            <button
+              onClick={handleCancell}
+              className="cancel-button"
+            >
+              Cancel Listing
+            </button>
+          )}
+        </div>
       </div>
 
-      <p className="text-blue-500 font-semibold mt-2 text-center">
-        Price: {property.attributes.find(attr => attr.trait_type === "Purchase Price")?.value} ETH
-      </p>
-      <p className="text-blue-500 font-semibold mt-2 text-center">
-        Downpayment: {property.attributes.find(attr => attr.trait_type === "Purchase Price")?.value * 0.2} ETH
-      </p>
-
-      {isOwner ? (
-        <button
-          onClick={handleSellClick}
-          className="mt-3 w-full p-2 rounded-lg text-white font-semibold bg-red-500 hover:bg-red-600"
-        >
-          Sell
-        </button>
-      ) : (
-        <button
-          onClick={buyProp}
-          disabled={!isConnected}
-          className={`mt-3 w-full p-2 rounded-lg text-white font-semibold ${
-            isConnected ? "bg-green-500 hover:bg-green-600" : "bg-gray-400 cursor-not-allowed"
-          }`}
-        >
-          {isConnected ? "Buy Now" : "Connect Wallet to Buy"}
-        </button>
-      )}
-      {isOwner?(
-        <button
-        onClick={handleCancell}
-        className="mt-3 w-full p-2 rounded-lg text-white font-semibold bg-red-500 hover:bg-red-600"
-      >
-        Cancell Listing
-      </button>
-      ):(<p></p>)}
       {showModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50">
-          <div className="bg-white p-6 rounded-lg w-96">
-            <h2 className="text-xl font-bold mb-4">List Property for Sale</h2>
-            <label className="block text-gray-700 font-medium">New Name:</label>
+        <div className="modal-overlay">
+          <div className="modal-container">
+            <h2 className="modal-title">List Property for Sale</h2>
+            
+            <label className="form-label">New Name:</label>
             <input
               type="text"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              className="w-full p-2 border rounded-md mb-3"
+              className="form-input"
               placeholder="Type in the name"
             />
-            <label className="block text-gray-700 font-medium">New Listing Price (ETH):</label>
+            
+            <label className="form-label">New Listing Price (ETH):</label>
             <input
               type="number"
               value={newPrice}
               onChange={(e) => setNewPrice(e.target.value)}
-              className="w-full p-2 border rounded-md mb-3"
+              className="form-input"
               placeholder="Enter price in ETH"
             />
 
-            <label className="block text-gray-700 font-medium">New Description:</label>
+            <label className="form-label">New Description:</label>
             <textarea
               value={newDescription}
               onChange={(e) => setNewDescription(e.target.value)}
-              className="w-full p-2 border rounded-md mb-3"
+              className="form-textarea"
               placeholder="Enter new description"
             ></textarea>
 
-            <div className="flex justify-between mt-4">
-              <button onClick={handleCloseModal} className="bg-gray-500 text-white px-4 py-2 rounded-md">
+            <div className="modal-actions">
+              <button onClick={handleCloseModal} className="modal-cancel">
                 Cancel
               </button>
-              <button onClick={handleListProperty} className="bg-blue-500 text-white px-4 py-2 rounded-md">
+              <button onClick={handleListProperty} className="modal-submit">
                 List Property
               </button>
             </div>
           </div>
-    </div>
+        </div>
       )}
     </div>
   );

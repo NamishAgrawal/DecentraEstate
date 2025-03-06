@@ -1,75 +1,14 @@
 import { useState, useEffect } from "react";
 import { ethers } from "ethers";
-import { useWallet } from "../context/WalletContext.jsx";  
+import { useWallet } from "../context/WalletContext.jsx";
 import EscrowABI from "../contracts/Escrow.json";
 import RealEstateABI from "../contracts/RealEstate.json";
 import PropertyCard from "../components/PropertyCard";
 import addresses from "../contracts/addresses.json";
+import { FaHome } from 'react-icons/fa';
 
 const EscrowAddress = addresses.Escrow;
 const RealEstate_Address = addresses.RealEstate;
-
-const Home = () => {
-  const { account } = useWallet(); 
-  const [properties, setProperties] = useState([]);
-
-  useEffect(() => {
-    const fetchProperties = async () => {
-      if (!account) return;
-
-      try {
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        // const contract = new ethers.Contract(CONTRACT_ADDRESS, PropertyStorageABI, provider);
-
-        // const totalProperties = await contract.propertyCount();
-        const contract = new ethers.Contract(RealEstate_Address,RealEstateABI,provider);
-        const totalProperties = await contract.getnextTokenId();
-        let propertyList = [];
-
-        for (let id = 0; id < totalProperties; id++) {
-          let isOwner = false;
-          const escrow = new ethers.Contract(EscrowAddress,EscrowABI,provider);
-          const isListed = await escrow.isListed(id);
-          if(!isListed){
-            continue;
-          }
-          const seller = await escrow.idToSeller(id);
-          if(seller.toLowerCase() === account.toLowerCase()){
-            isOwner = true;
-          }
-          const cid = await contract.tokenURI(id);
-
-          try {
-            const metadata = await fetchWithRetry(`https://gateway.pinata.cloud/ipfs/${cid}`);
-
-            propertyList.push({ id,isOwner, ...metadata });
-          } catch (fetchError) {
-            console.error(`Error fetching metadata for property ${id}:`, fetchError);
-          }
-        }
-
-        setProperties(propertyList);
-      } catch (error) {
-        console.error("Error fetching properties:", error);
-      }
-    };
-
-    fetchProperties();
-  }, [account]); 
-
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 p-4">
-      {properties.length > 0 ? (
-        properties.map((property) => <PropertyCard key={property.id} property={property} isOwner={property.isOwner} />)
-      ) : (
-        <p className="text-center text-gray-500 col-span-full">No properties listed yet.</p>
-      )}
-      
-    </div>
-  );
-};
-
-export default Home;
 
 /**
  * Fetch helper with retry mechanism
@@ -79,13 +18,10 @@ const fetchWithRetry = async (url, retries = 3, delay = 1000) => {
     try {
       console.log(`Fetching: ${url} (Attempt ${i + 1})`);
       const response = await fetch(url);
-      
       if (!response.ok) {
         throw new Error(`HTTP Error ${response.status}`);
       }
-
       return await response.json();
-      
     } catch (error) {
       console.error(`Fetch failed (${i + 1}/${retries}):`, error);
       if (i === retries - 1) throw error;
@@ -93,3 +29,127 @@ const fetchWithRetry = async (url, retries = 3, delay = 1000) => {
     }
   }
 };
+
+const Home = () => {
+  const { account } = useWallet();
+  const [properties, setProperties] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchProperties = async () => {
+      if (!account) {
+        setLoading(false);
+        return;
+      }
+      
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const contract = new ethers.Contract(RealEstate_Address, RealEstateABI, provider);
+        const escrow = new ethers.Contract(EscrowAddress, EscrowABI, provider);
+        
+        const totalProperties = await contract.getnextTokenId();
+        let propertyList = [];
+        
+        for (let id = 0; id < totalProperties; id++) {
+          try {
+            const isListed = await escrow.isListed(id);
+            if (!isListed) continue;
+            
+            const seller = await escrow.idToSeller(id);
+            const isOwner = seller.toLowerCase() === account.toLowerCase();
+            const price = await escrow.listing_price(id);
+            const cid = await contract.tokenURI(id);
+            
+            try {
+              const metadata = await fetchWithRetry(`https://gateway.pinata.cloud/ipfs/${cid}`);
+              propertyList.push({ 
+                id, 
+                isOwner, 
+                price: price.toString(), 
+                ...metadata 
+              });
+            } catch (fetchError) {
+              console.error(`Error fetching metadata for property ${id}:`, fetchError);
+            }
+          } catch (propError) {
+            console.error(`Error processing property ${id}:`, propError);
+          }
+        }
+        
+        setProperties(propertyList);
+      } catch (error) {
+        console.error("Error fetching properties:", error);
+        setError("Failed to load properties. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchProperties();
+  }, [account]);
+
+  if (loading) {
+    return (
+      <div className="container">
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container">
+        <div className="empty-state">
+          <div className="empty-state-icon">⚠️</div>
+          <div className="empty-state-text">{error}</div>
+          <button className="connect-button" onClick={() => window.location.reload()}>
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!account) {
+    return (
+      <div className="container">
+        <div className="empty-state">
+          <div className="empty-state-icon">🔑</div>
+          <div className="empty-state-text">Please connect your wallet to view properties</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container">
+      <h1 className="text-2xl font-bold mb-6">Available Properties</h1>
+      
+      <div className="property-grid">
+        {properties.length > 0 ? (
+          properties.map((property) => (
+            <PropertyCard 
+              key={property.id} 
+              property={property} 
+              isOwner={property.isOwner}
+            />
+          ))
+        ) : (
+          <div className="empty-state">
+            <FaHome className="empty-state-icon" />
+            <div className="empty-state-text">No properties listed yet.</div>
+            <button className="connect-button">List Your Property</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default Home;
