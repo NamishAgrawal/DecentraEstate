@@ -114,7 +114,7 @@ contract Escrow {
         buyer_paid[_id] = true;
         require(lender_paid[_id], "Lender has not paid yet");
         require(
-            address(this).balance >= listing_price[_id],
+            address(this).balance >= listing_price[_id]-escrow_amount[_id],
             "Not enough funds in escrow"
         );
         address seller = idToSeller[_id];

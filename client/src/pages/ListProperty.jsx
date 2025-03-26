@@ -5,7 +5,7 @@ import { useWallet } from "../context/WalletContext.jsx";
 import EscrowABI from "../contracts/Escrow.json";
 import RealEstateABI from "../contracts/RealEstate.json";
 import addresses from "../contracts/addresses.json"
-import "./ListProperty.css"; // Import the CSS file
+import "./ListProperty.css";
 
 const EscrowAddress = addresses.Escrow;
 const RealEstateAddress = addresses.RealEstate;
@@ -81,7 +81,7 @@ const ListProperty = () => {
       const signer = await provider.getSigner();
       
       const RealEstate = new ethers.Contract(RealEstateAddress, RealEstateABI, signer);
-      
+      console.log(signer,RealEstate);
       const tx = await RealEstate.safeMint(account, cid);
       await tx.wait();
       
