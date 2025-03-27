@@ -11,6 +11,11 @@
     --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     --shadow-hover: 0 10px 15px rgba(0, 0, 0, 0.2);
   }
+  .property-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+  }
   
   body {
     font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;

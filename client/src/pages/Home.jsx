@@ -6,13 +6,11 @@ import RealEstateABI from "../contracts/RealEstate.json";
 import PropertyCard from "../components/PropertyCard";
 import addresses from "../contracts/addresses.json";
 import { FaHome } from 'react-icons/fa';
+import "./Home.css";
 
 const EscrowAddress = addresses.Escrow;
 const RealEstate_Address = addresses.RealEstate;
 
-/**
- * Fetch helper with retry mechanism
- */
 const fetchWithRetry = async (url, retries = 3, delay = 1000) => {
   for (let i = 0; i < retries; i++) {
     try {
@@ -25,7 +23,7 @@ const fetchWithRetry = async (url, retries = 3, delay = 1000) => {
     } catch (error) {
       console.error(`Fetch failed (${i + 1}/${retries}):`, error);
       if (i === retries - 1) throw error;
-      await new Promise(res => setTimeout(res, delay));
+      await new Promise((res) => setTimeout(res, delay));
     }
   }
 };
@@ -94,7 +92,7 @@ const Home = () => {
 
   if (loading) {
     return (
-      <div className="container">
+      <div className="container mx-auto p-4 flex justify-center items-center h-screen">
         <div className="loading-container">
           <div className="loading-spinner"></div>
         </div>
@@ -104,11 +102,11 @@ const Home = () => {
 
   if (error) {
     return (
-      <div className="container">
-        <div className="empty-state">
-          <div className="empty-state-icon">⚠️</div>
+      <div className="container mx-auto p-4">
+        <div className="empty-state text-center">
+          <FaHome className="empty-state-icon mx-auto" size={48} />
           <div className="empty-state-text">{error}</div>
-          <button className="connect-button" onClick={() => window.location.reload()}>
+          <button className="connect-button mt-4" onClick={() => window.location.reload()}>
             Retry
           </button>
         </div>
@@ -118,9 +116,9 @@ const Home = () => {
 
   if (!account) {
     return (
-      <div className="container">
-        <div className="empty-state">
-          <div className="empty-state-icon">🔑</div>
+      <div className="container mx-auto p-4">
+        <div className="empty-state text-center">
+          <FaHome className="empty-state-icon mx-auto" size={48} />
           <div className="empty-state-text">Please connect your wallet to view properties</div>
         </div>
       </div>
@@ -128,23 +126,22 @@ const Home = () => {
   }
 
   return (
-    <div className="container">
+    <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-6">Available Properties</h1>
-      
       <div className="property-grid">
         {properties.length > 0 ? (
           properties.map((property) => (
             <PropertyCard 
               key={property.id} 
               property={property} 
-              isOwner={property.isOwner}
+              isOwner={property.isOwner} 
             />
           ))
         ) : (
-          <div className="empty-state">
-            <FaHome className="empty-state-icon" />
+          <div className="empty-state col-span-full text-center">
+            <FaHome className="empty-state-icon mx-auto" size={48} />
             <div className="empty-state-text">No properties listed yet.</div>
-            <button className="connect-button">List Your Property</button>
+            <button className="connect-button mt-4">List Your Property</button>
           </div>
         )}
       </div>

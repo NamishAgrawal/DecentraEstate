@@ -5,14 +5,32 @@ import RealEstateABI from "../contracts/RealEstate.json";
 import EscrowABI from "../contracts/Escrow.json";
 import addresses from "../contracts/addresses.json";
 import PropertyCard from "../components/PropertyCard";
+import "./Dashboard.css"; 
 
 const EscrowAddress = addresses.Escrow;
 const RealEstateAddress = addresses.RealEstate;
 
+const fetchWithRetry = async (url, retries = 3, delay = 1000) => {
+    for (let i = 0; i < retries; i++) {
+        try {
+            console.log(`Fetching: ${url} (Attempt ${i + 1})`);
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`HTTP Error ${response.status}`);
+            }
+            return await response.json();
+        } catch (error) {
+            console.error(`Fetch failed (${i + 1}/${retries}):`, error);
+            if (i === retries - 1) throw error;
+            await new Promise((res) => setTimeout(res, delay));
+        }
+    }
+};
+
 const Dashboard = () => {
     const { account } = useWallet();
     const [ownedProperties, setOwnedProperties] = useState([]);
-    const [ListedProperties, setListed] = useState([]);
+    const [listedProperties, setListedProperties] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -27,53 +45,50 @@ const Dashboard = () => {
                 const totalProperties = await contract.getnextTokenId();
                 let userProperties = [];
                 let listedProperties = [];
-                for (let id = 0; id < totalProperties; id++) {
-                    const owner = await contract.ownerOf(id);
-                    console.log("owner is ", owner);
-                    if (owner.toLowerCase() === account.toLowerCase()) {
-                        const tokenURI = await contract.tokenURI(id);
-                        console.log(`Fetching metadata from: ${tokenURI}`);
-                        const metadata = await fetchMetadata(tokenURI);
-                        userProperties.push({ id, ...metadata });
-                    }
 
-                    else if (owner.toLowerCase() === EscrowAddress.toLocaleLowerCase()) {
-                        const seller = await escrow.idToSeller(id);
-                        console.log("seller address", seller);
-                        if (seller.toLowerCase() === account.toLowerCase()) {
-                            const tokenURI = await contract.tokenURI(id);
-                            console.log(`Fetching metadata from: ${tokenURI}`);
-                            const metadata = await fetchMetadata(tokenURI);
-                            listedProperties.push({ id, ...metadata });
+                for (let id = 0; id < totalProperties; id++) {
+                    try {
+                        const owner = await contract.ownerOf(id);
+
+                        if (owner.toLowerCase() === account.toLowerCase()) {
+                            const cid = await contract.tokenURI(id);
+                            const metadata = await fetchWithRetry(`https://gateway.pinata.cloud/ipfs/${cid}`);
+                            userProperties.push({ id, ...metadata });
+                        } else if (owner.toLowerCase() === EscrowAddress.toLowerCase()) {
+                            const seller = await escrow.idToSeller(id);
+                            if (seller.toLowerCase() === account.toLowerCase()) {
+                                const cid = await contract.tokenURI(id);
+                                const metadata = await fetchWithRetry(`https://gateway.pinata.cloud/ipfs/${cid}`);
+                                listedProperties.push({ id, ...metadata });
+                            }
                         }
+                    } catch (propError) {
+                        console.error(`Error processing property ${id}:`, propError);
                     }
                 }
-                setListed(listedProperties);
+
                 setOwnedProperties(userProperties);
+                setListedProperties(listedProperties);
             } catch (error) {
                 console.error("Error fetching owned properties:", error);
+            } finally {
+                setLoading(false);
             }
-            setLoading(false);
         };
 
         fetchOwnedProperties();
     }, [account]);
 
-    // Fetch metadata from IPFS
-    const fetchMetadata = async (tokenURI) => {
-        try {
-            tokenURI = "https://ipfs.io/ipfs/" + tokenURI;
-            const response = await fetch(tokenURI);
-            console.log(response);
-            return await response.json();
-        } catch (error) {
-            console.error("Error fetching metadata:", error);
-            return {};
-        }
-    };
+    if (!account) {
+        return (
+            <div className="container mx-auto p-4 text-center">
+                <p>Please connect your wallet to view your dashboard.</p>
+            </div>
+        );
+    }
 
     return (
-        <div className="p-6">
+        <div className="container mx-auto p-6">
             <div>
                 <h1 className="text-2xl font-bold mb-4">My Properties</h1>
                 {loading ? (
@@ -81,7 +96,7 @@ const Dashboard = () => {
                 ) : ownedProperties.length === 0 ? (
                     <p>You don't own any properties yet.</p>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="property-grid">
                         {ownedProperties.map((property) => (
                             <PropertyCard key={property.id} property={property} isOwner={true} />
                         ))}
@@ -89,14 +104,14 @@ const Dashboard = () => {
                 )}
             </div>
             <div>
-                <h1 className="text-2xl font-bold mb-4">My Listed Properties</h1>
+                <h1 className="text-2xl font-bold mb-4 mt-8">My Listed Properties</h1>
                 {loading ? (
                     <p>Loading properties...</p>
-                ) : ListedProperties.length === 0 ? (
-                    <p>You don't own any properties yet.</p>
+                ) : listedProperties.length === 0 ? (
+                    <p>You have no listed properties.</p>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {ListedProperties.map((property) => (
+                    <div className="property-grid">
+                        {listedProperties.map((property) => (
                             <PropertyCard key={property.id} property={property} isOwner={true} />
                         ))}
                     </div>
