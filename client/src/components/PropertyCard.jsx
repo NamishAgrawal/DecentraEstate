@@ -1,11 +1,11 @@
 import { ethers } from "ethers";
 import { pinata } from "../utils/config";
-import { useState } from "react";
 import { useWallet } from "../context/WalletContext.jsx";
+import { useState, useEffect } from "react";
 import EscrowABI from "../contracts/Escrow.json";
 import RealEstateABI from "../contracts/RealEstate.json";
 import addresses from "../contracts/addresses.json";
-import "./PropertyCard.css"; // Import the CSS file
+import "./PropertyCard.css";
 
 const CONTRACT_ADDRESS = addresses.Escrow;
 const RealEstateAddress = addresses.RealEstate;
@@ -16,9 +16,17 @@ const PropertyCard = ({ property, isOwner }) => {
   const [newPrice, setNewPrice] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [newName, setNewName] = useState("");
-
+  const [isListed, setIsListed] = useState(false);
   const isConnected = !!account;
-
+  
+  async function getListing() {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const contract = new ethers.Contract(CONTRACT_ADDRESS, EscrowABI, provider);
+        const listed = await contract.isListed(property.id);
+        setIsListed(listed);
+        console.log("property id ",property.id," lisiting status ",listed);
+  }
+  getListing()
   const handleSellClick = () => {
     setShowModal(true);
   };
@@ -55,8 +63,9 @@ const PropertyCard = ({ property, isOwner }) => {
       const metadataUpload = await pinata.upload.json(updatedMetadata);
       const newCID = metadataUpload.IpfsHash;
   
-      const tx = await realEstateContract.setTokenURI(property.id, newCID);
+      const tx = await escrowContract.UpdateURI(property.id, newCID);
       await tx.wait();
+      console.log(tx);
   
       const downPayment = newPrice * 0.2;
       const owner = await realEstateContract.ownerOf(property.id);
@@ -170,7 +179,7 @@ const PropertyCard = ({ property, isOwner }) => {
               onClick={handleSellClick}
               className="sell-button"
             >
-              Sell
+              {isListed ? "Re-list" : "Sell"}
             </button>
           ) : (
             <button
@@ -182,7 +191,7 @@ const PropertyCard = ({ property, isOwner }) => {
             </button>
           )}
           
-          {isOwner && (
+          {(isListed && isOwner) && (
             <button
               onClick={handleCancell}
               className="cancel-button"

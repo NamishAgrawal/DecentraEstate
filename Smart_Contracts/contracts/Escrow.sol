@@ -4,6 +4,12 @@ pragma solidity ^0.8.28;
 interface IERC721 {
     function transferFrom(address _from, address _to, uint256 _id) external;
 }
+interface RealEstate{
+    
+    function setTokenURI(uint256 id, string memory uri) external;
+    function ownerOf(uint256 tokenId) external returns(address) ;
+
+}
 
 contract Escrow {
     address public nftAddress;
@@ -69,6 +75,11 @@ contract Escrow {
         listing_price[_id] = _price;
         escrow_amount[_id] = _downPayment;
     }
+    function UpdateURI(uint _id, string memory _tokenURI) public {
+        address ad = RealEstate(nftAddress).ownerOf(_id);
+        require(idToSeller[_id] == msg.sender || ad == msg.sender,"you cannot call this function");
+        RealEstate(nftAddress).setTokenURI(_id,_tokenURI);
+    }
 
     function updatelisting(
         uint256 _id,
@@ -133,7 +144,7 @@ contract Escrow {
         delete lender_paid[_id];
         emit propertyBought(msg.sender, lenderr, owner, seller);
     }
-
+    
     function cancellListing(uint256 _id) public onlySeller(_id) {
         isListed[_id] = false;
 

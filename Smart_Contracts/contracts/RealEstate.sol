@@ -7,10 +7,21 @@ import {ERC721URIStorage} from "@openzeppelin/contracts/token/ERC721/extensions/
 
 contract RealEstate is ERC721, ERC721URIStorage {
     uint256 public _nextTokenId;
-
+    address escrowAddress;
+    address owner;
+    modifier onlyOwner(){
+        require(msg.sender == owner,"only owner can do this");
+        _;
+    }
+    modifier onlyEscrow(){
+        require(msg.sender == escrowAddress);
+        _;
+    }
     constructor()
         ERC721("RealEstate", "REAL")
-    {}
+    {
+        owner = msg.sender;
+    }
 
     function getnextTokenId()public view returns(uint){
         return _nextTokenId;
@@ -22,8 +33,12 @@ contract RealEstate is ERC721, ERC721URIStorage {
         _setTokenURI(tokenId, uri);
     }
 
-    function setTokenURI(uint256 id, string memory uri) public {
+    function setTokenURI(uint256 id, string memory uri) external onlyEscrow {
         _setTokenURI(id,uri);
+    }
+
+    function setEscrow(address escrow) public onlyOwner{
+        escrowAddress = escrow;
     }
 
     // The following functions are overrides required by Solidity.
